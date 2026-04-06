@@ -1,4 +1,5 @@
 const { Sequelize } = require('sequelize');
+require('pg');
 require('dotenv').config();
 
 const connString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
