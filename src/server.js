@@ -17,18 +17,19 @@ app.use('/api/news', require('./routes/news.routes'));
 app.use('/api/categories', require('./routes/category.routes'));
 app.use('/api/comments', require('./routes/comment.routes'));
 
-// solo levanta el servidor y sincroniza en entorno local
-if (!process.env.VERCEL) {
-    sequelize.sync({ alter: true })
-        .then(() => {
+sequelize.sync({ alter: true })
+    .then(() => {
+        console.log('Database synced');
+        if (!process.env.VERCEL) {
             app.listen(PORT, () => {
-                console.log(`Servidor corriendo en el puerto ${PORT} (Entorno local)`);
+                console.log(`Servidor local corriendo en el puerto ${PORT}`);
             });
-        })
-        .catch(err => {
-            console.error('Error al sincronizar la base de datos:', err);
-        });
-}
+        }
+    })
+    .catch(err => {
+        console.error('Error al sincronizar la base de datos:', err);
+    });
 
 module.exports = app;
+
 
