@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Postear nuevo contenido | Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script defer src="js/app.js"></script>
+</head>
+
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="container" style="margin-top: 120px; max-width: 700px;">
+        <div class="card bg-dark border-secondary p-4 shadow-lg">
+            <h2 class="mb-4 text-light fw-bold">Crea un nuevo post</h2>
+            <form id="news-upload-form" onsubmit="handleNewsUpload(event)">
+                <div class="mb-4">
+                    <label for="newsTitle"
+                        class="form-label text-body-secondary small text-uppercase fw-bold">Título</label>
+                    <input type="text" class="form-control form-control-lg bg-black border-secondary text-light"
+                        id="newsTitle" required placeholder="Título atractivo y profesional...">
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-4 mb-md-0">
+                        <label for="newsCategory"
+                            class="form-label text-body-secondary small text-uppercase fw-bold">Género /
+                            Categoría</label>
+                        <div class="input-group">
+                            <select class="form-select bg-black border-secondary text-light" id="newsCategory" required>
+                                <option value="">Seleccionar Categoría</option>
+                            </select>
+                            <button class="btn btn-outline-secondary" type="button"
+                                onclick="document.getElementById('new-category-modal').style.display='block'">+</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="newsImage" class="form-label text-body-secondary small text-uppercase fw-bold">URL
+                            de la imagen</label>
+                        <input type="url" class="form-control bg-black border-secondary text-light" id="newsImage"
+                            placeholder="https://image-source.com/img.jpg">
+                    </div>
+                </div>
+
+                <div id="new-category-modal" class="mb-4 bg-black p-3 border border-secondary" style="display: none;">
+                    <label for="newCategoryName"
+                        class="form-label text-body-secondary small text-uppercase fw-bold">Nombre de la
+                        categoría</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-black border-secondary text-light"
+                            id="newCategoryName" placeholder="ej. Jazz Fusion">
+                        <button class="btn btn-primary btn-sm" type="button"
+                            onclick="handleCategoryCreate()">Agregar</button>
+                        <button class="btn btn-outline-secondary btn-sm" type="button"
+                            onclick="document.getElementById('new-category-modal').style.display='none'">Cancelar</button>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="newsContent"
+                        class="form-label text-body-secondary small text-uppercase fw-bold">Contenido
+                        completo</label>
+                    <textarea class="form-control bg-black border-secondary text-light" id="newsContent" rows="10"
+                        required placeholder="Análisis o noticia aquí..."></textarea>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary py-3 fw-bold">Publicar en Ruido Hoy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            const userJson = localStorage.getItem('user');
+            const user = userJson ? JSON.parse(userJson) : null;
+            if (!user || user.role !== 'admin') {
+                alert('Acceso Restringido. Redirigiendo.');
+                window.location.href = 'index.html';
+                return;
+            }
+            refreshCategories();
+        });
+
+        async function refreshCategories() {
+            const response = await fetch('/api/categories');
+            const categories = await response.json();
+            const select = document.getElementById('newsCategory');
+            select.innerHTML = '<option value="">Seleccionar Categoría</option>';
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.innerText = cat.name;
+                select.appendChild(opt);
+            });
+        }
+
+        async function handleCategoryCreate() {
+            const name = document.getElementById('newCategoryName').value;
+            const token = localStorage.getItem('token');
+            if (!name) return;
+
+            try {
+                const response = await fetch('/api/categories', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ name })
+                });
+
+                if (response.ok) {
+                    document.getElementById('newCategoryName').value = '';
+                    document.getElementById('new-category-modal').style.display = 'none';
+                    refreshCategories();
+                } else {
+                    alert('Error al crear la categoría');
+                }
+            } catch (err) {
+                alert('Fallo de conexión');
+            }
+        }
+
+        async function handleNewsUpload(event) {
+            event.preventDefault();
+            const title = document.getElementById('newsTitle').value;
+            const content = document.getElementById('newsContent').value;
+            const imageUrl = document.getElementById('newsImage').value;
+            const categoryId = document.getElementById('newsCategory').value;
+            const token = localStorage.getItem('token');
+
+            try {
+                const response = await fetch('/api/news', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ title, content, imageUrl, categoryId })
+                });
+
+                if (response.ok) {
+                    alert('Noticia publicada exitosamente');
+                    window.location.href = 'index.html';
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error del servidor');
+                }
+            } catch (err) {
+                alert('Fallo de conexión');
+            }
+        }
+    </script>
+</body>
+
+</html>
